@@ -1,0 +1,87 @@
+name: Release Windows app
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish Windows x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-build.txt
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Build single-file executable
+        shell: pwsh
+        run: >-
+          python -m PyInstaller
+          --noconfirm
+          --clean
+          --onefile
+          --windowed
+          --name PDFTool
+          --collect-all tkinterdnd2
+          --exclude-module PIL
+          --exclude-module reportlab
+          --add-data "LICENSE;."
+          --add-data "THIRD_PARTY_NOTICES.md;."
+          --add-data "licenses/PYTHON_LICENSE.txt;licenses"
+          app.py
+
+      - name: Prepare release assets and checksums
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          $assetRoot = "release"
+          $exeName = "PDFTool-$version-windows-x64.exe"
+          $zipName = "PDFTool-$version-windows-x64.zip"
+          New-Item -ItemType Directory -Force $assetRoot | Out-Null
+          Copy-Item "dist/PDFTool.exe" "$assetRoot/$exeName"
+          Compress-Archive -Path @(
+            "$assetRoot/$exeName",
+            "LICENSE",
+            "THIRD_PARTY_NOTICES.md",
+            "licenses/PYTHON_LICENSE.txt"
+          ) -DestinationPath "$assetRoot/$zipName" -CompressionLevel Optimal
+          $assets = @("$assetRoot/$exeName", "$assetRoot/$zipName")
+          $lines = foreach ($asset in $assets) {
+            $hash = (Get-FileHash $asset -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $([System.IO.Path]::GetFileName($asset))"
+          }
+          Set-Content -Path "$assetRoot/SHA256SUMS.txt" -Value $lines -Encoding utf8
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" `
+            release/PDFTool-${{ github.ref_name }}-windows-x64.exe `
+            release/PDFTool-${{ github.ref_name }}-windows-x64.zip `
+            release/SHA256SUMS.txt `
+            --verify-tag `
+            --generate-notes `
+            --title "PDF 简工具 ${{ github.ref_name }}" `
+            --notes "Windows x64 release. The executable is currently unsigned; verify downloads with SHA256SUMS.txt. Open-source license notices are embedded in the app and included in the ZIP package."
