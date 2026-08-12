@@ -3,6 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from pypdf import PdfReader, PdfWriter
 
@@ -16,6 +17,17 @@ from pdf_tool.core import (
     rotate_pages,
     split_pdf,
 )
+from pdf_tool.editing import (
+    InkEdit,
+    RectEdit,
+    SignatureEdit,
+    TextEdit,
+    extract_page_text,
+    get_page_sizes,
+    save_pdf_edits,
+)
+from pdf_tool.translation import translate_text
+from pdf_tool.editor import PdfEditorWindow
 
 
 def make_pdf(path: Path, widths: list[int]) -> Path:
@@ -74,6 +86,94 @@ class CoreTests(unittest.TestCase):
         outputs = split_pdf(self.first, self.root / "split")
         self.assertEqual(len(outputs), 3)
         self.assertTrue(all(len(PdfReader(str(path)).pages) == 1 for path in outputs))
+
+    def test_save_visual_edits(self) -> None:
+        edits = [
+            TextEdit(0, 20, 30, "Hello PDF", 16, "#123456"),
+            InkEdit(0, (((30, 80), (50, 90), (75, 72)),), 2.5, "#111111"),
+            SignatureEdit(0, (((120, 145), (150, 132), (190, 148)),), 2.2, "#111111"),
+            RectEdit(0, 15, 100, 70, 18, "highlight", "#ffe066"),
+            RectEdit(1, 10, 20, 30, 12, "whiteout"),
+        ]
+        output = save_pdf_edits(self.first, edits, self.root / "edited.pdf")
+        reader = PdfReader(str(output))
+        self.assertEqual(len(reader.pages), 3)
+        self.assertIn("Hello PDF", reader.pages[0].extract_text())
+        self.assertEqual(extract_page_text(output, 0), "Hello PDF")
+        with self.assertRaises(PdfToolError):
+            save_pdf_edits(self.first, edits, self.first)
+
+    def test_visual_edits_support_cjk_and_rotated_pages(self) -> None:
+        rotated = self.root / "rotated_source.pdf"
+        writer = PdfWriter()
+        writer.add_blank_page(width=200, height=300).rotate(90)
+        with rotated.open("wb") as stream:
+            writer.write(stream)
+        self.assertEqual(get_page_sizes(rotated), [(300.0, 200.0)])
+        output = save_pdf_edits(
+            rotated,
+            [TextEdit(0, 20, 20, "签名确认", 14), InkEdit(0, (((20, 60), (90, 70)),))],
+            self.root / "rotated_edited.pdf",
+        )
+        result = PdfReader(str(output))
+        self.assertEqual(len(result.pages), 1)
+        self.assertEqual(result.pages[0].rotation, 0)
+        self.assertEqual((float(result.pages[0].mediabox.width), float(result.pages[0].mediabox.height)), (300.0, 200.0))
+
+    def test_translate_text_libretranslate_payload(self) -> None:
+        class FakeResponse:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return b'{"translatedText": "Hello"}'
+
+        with patch("urllib.request.urlopen", return_value=FakeResponse()) as mocked:
+            result = translate_text("你好", "en", "https://translate.example/translate", api_key="secret")
+        self.assertEqual(result, "Hello")
+        request = mocked.call_args.args[0]
+        self.assertIn(b'"target": "en"', request.data)
+        self.assertIn(b'"api_key": "secret"', request.data)
+        with self.assertRaises(PdfToolError):
+            translate_text("text", "en", "http://translate.example/translate")
+
+    def test_signature_can_be_moved_and_resized(self) -> None:
+        signature = SignatureEdit(
+            0,
+            (((10, 10), (55, 35), (110, 60)),),
+            2.2,
+            "#111111",
+        )
+        editor = PdfEditorWindow.__new__(PdfEditorWindow)
+        editor.edits = [signature]
+        editor.undo_stack = []
+        editor.redo_stack = []
+        editor.page_index = 0
+        editor.page_sizes = [(500.0, 400.0)]
+        editor.selected_signature = 0
+        editor.signature_drag = "move"
+        editor.signature_drag_start = (50.0, 30.0)
+        editor.signature_drag_original = signature
+        editor.signature_drag_history_saved = False
+        editor._redraw_edits = lambda: None
+
+        editor._drag_selected_signature((70.0, 60.0))
+        moved = editor.edits[0]
+        self.assertIsInstance(moved, SignatureEdit)
+        self.assertEqual(editor._signature_bbox(moved), (30.0, 40.0, 130.0, 90.0))
+
+        editor.signature_drag = "se"
+        editor.signature_drag_start = (130.0, 90.0)
+        editor.signature_drag_original = moved
+        editor.signature_drag_history_saved = False
+        editor._drag_selected_signature((230.0, 140.0))
+        resized = editor.edits[0]
+        self.assertEqual(editor._signature_bbox(resized), (30.0, 40.0, 230.0, 140.0))
+        self.assertAlmostEqual(resized.width, 4.4)
+        self.assertEqual(len(editor.undo_stack), 2)
 
 
 if __name__ == "__main__":

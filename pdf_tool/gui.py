@@ -93,12 +93,12 @@ class PdfToolApp:
         self._configure_drop()
 
     def _configure_window(self) -> None:
-        self.root.title("PDF 简工具")
+        self.root.title("PDF 简工具 2.0")
         self.root.geometry("940x700")
         self.root.minsize(820, 620)
         self.root.configure(bg=self.BG)
         try:
-            self.root.iconname("PDF 简工具")
+            self.root.iconname("PDF 简工具 2.0")
         except tk.TclError:
             pass
 
@@ -143,11 +143,11 @@ class PdfToolApp:
         outer.columnconfigure(0, weight=1)
         outer.rowconfigure(2, weight=1)
 
-        ttk.Label(outer, text="PDF 简工具", style="Title.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(outer, text="PDF 简工具 2.0", style="Title.TLabel").grid(row=0, column=0, sticky="w")
         drag_note = "支持拖入 PDF 或文件夹" if DND_AVAILABLE else "可从文件或文件夹添加 PDF"
         ttk.Label(
             outer,
-            text=f"合并、删页、提取、旋转与拆分。{drag_note}。",
+            text=f"批量整理、可视编辑、手写签名与翻译。{drag_note}。",
             style="Subtitle.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(2, 16))
 
@@ -162,6 +162,7 @@ class PdfToolApp:
         toolbar = ttk.Frame(file_card, style="Card.TFrame")
         toolbar.grid(row=1, column=0, sticky="ew", pady=(10, 10))
         for text, command in (
+            ("可视编辑 / 手写签名", self.open_editor),
             ("添加文件", self.add_files_dialog),
             ("添加文件夹", self.add_folder_dialog),
             ("移除", self.remove_selected),
@@ -197,6 +198,7 @@ class PdfToolApp:
         self.tree.grid(row=0, column=0, sticky="nsew")
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.tree.bind("<<TreeviewSelect>>", lambda _event: self._suggest_output(force=True))
+        self.tree.bind("<Double-1>", lambda _event: self.open_editor())
 
         options = ttk.Frame(outer, style="Card.TFrame", padding=16)
         options.grid(row=3, column=0, sticky="ew", pady=(14, 0))
@@ -254,6 +256,27 @@ class PdfToolApp:
         )
         self.run_button.grid(row=0, column=3, sticky="e")
         self._operation_changed()
+
+    def open_editor(self) -> None:
+        selected = self._selected_indices()
+        source: Path | None = None
+        if len(selected) == 1:
+            source = self.files[selected[0]].path
+        elif len(self.files) == 1:
+            source = self.files[0].path
+        elif len(selected) > 1:
+            messagebox.showinfo("请选择一个 PDF", "可视编辑一次打开一个 PDF。", parent=self.root)
+            return
+        else:
+            result = filedialog.askopenfilename(
+                parent=self.root, title="选择要编辑的 PDF", filetypes=(("PDF 文件", "*.pdf"),)
+            )
+            if not result:
+                return
+            source = Path(result)
+        from .editor import PdfEditorWindow
+
+        PdfEditorWindow(self.root, source)
 
     def show_about(self) -> None:
         window = tk.Toplevel(self.root)

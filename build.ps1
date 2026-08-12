@@ -18,11 +18,16 @@ if (-not (Test-Path $PythonExe)) {
     --windowed `
     --name "PDFTool" `
     --collect-all tkinterdnd2 `
-    --exclude-module PIL `
-    --exclude-module reportlab `
+    --collect-all pypdfium2 `
+    --collect-all pypdfium2_raw `
+    --collect-all PIL `
+    --collect-all reportlab `
+    --copy-metadata pypdfium2 `
+    --copy-metadata Pillow `
+    --copy-metadata reportlab `
     --add-data "$(Join-Path $ProjectRoot 'LICENSE');." `
     --add-data "$(Join-Path $ProjectRoot 'THIRD_PARTY_NOTICES.md');." `
     --add-data "$(Join-Path $ProjectRoot 'licenses\PYTHON_LICENSE.txt');licenses" `
     (Join-Path $ProjectRoot "app.py")
 
-Write-Host "`n构建完成：$(Join-Path $ProjectRoot 'dist\PDFTool.exe')"
+Write-Host "`nBuild complete: $(Join-Path $ProjectRoot 'dist\PDFTool.exe')"

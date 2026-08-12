@@ -1,25 +1,22 @@
-# PDF Simple Tool
+# PDF Simple Tool 2.0
 
 [简体中文](README.md)
 
-A small, offline Windows desktop utility for common PDF page operations. It uses Python, Tkinter, and pypdf, and ships as a single-file executable.
+A Windows desktop app for organizing and visually editing PDFs. Version 2.0 adds page preview, text annotations, freehand ink, handwritten signatures, highlighting, visual whiteout, and optional translation to the original merge/delete/extract/rotate/split workflow.
 
 ## Features
 
-- Merge PDFs in a chosen order.
-- Delete, extract, or rotate selected pages.
-- Split a document into one PDF per page.
-- Add PDFs through a file picker, a folder picker, or drag and drop.
-- Validate output before replacing the destination file.
-- Process every file locally without uploading it.
+- Preview and edit every page at 75%–200% zoom
+- Add multiline text, including CJK text
+- Draw freehand annotations and choose colors
+- Capture a signature in an in-memory pad, then drag it to move and use four corner handles to resize it proportionally
+- Highlight or visually cover an area
+- Undo, redo, clear a page, and save to a validated new PDF
+- Extract current-page text, translate through a LibreTranslate-compatible endpoint, and place the translation back on the page
+- Merge, delete, extract, rotate, and split pages
+- Add files and folders or drag PDFs into the app
 
-Page expressions use one-based numbers, for example `1,3-5`.
-
-## Download
-
-Download the latest Windows x64 package from [GitHub Releases](https://github.com/xskxsjwjz/pdf-tool/releases/latest). Verify downloads with the accompanying `SHA256SUMS.txt` file.
-
-The executable is currently unsigned, so Windows SmartScreen may show a warning on first launch.
+> Whiteout is a visual overlay. It does not securely remove underlying text or metadata and must not be used for confidential redaction.
 
 ## Run from source
 
@@ -28,18 +25,19 @@ python -m pip install -r requirements.txt
 python app.py
 ```
 
-## Build
+Python 3.10–3.13 is supported.
+
+## Translation and privacy
+
+PDF organization, rendering, editing, and signing remain local. Text is sent over the network only after the user clicks **Translate**, and only to the configured LibreTranslate-compatible service. The endpoint and optional API key can be entered in the dialog or provided through `PDFTOOL_TRANSLATE_ENDPOINT` and `PDFTOOL_TRANSLATE_API_KEY`. Scanned pages currently require manual text entry because OCR is not included.
+
+## Test and build
 
 ```powershell
+python -m unittest discover -s tests -v
 .\build.ps1
 ```
 
-The build script creates `dist\PDFTool.exe`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow.
+The single-file Windows build is written to `dist\PDFTool.exe`.
 
-## Privacy and security
-
-PDFs stay on the local computer. Password-protected PDFs are not currently supported. Do not report security issues publicly; follow [SECURITY.md](SECURITY.md).
-
-## License
-
-Project code is available under the [MIT License](LICENSE). Binary distributions contain third-party open-source components; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The project is licensed under the [MIT License](LICENSE). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for bundled components and [CHANGELOG.md](CHANGELOG.md) for release history.
