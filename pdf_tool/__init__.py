@@ -11,6 +11,16 @@ from .core import (
     rotate_pages,
     split_pdf,
 )
+from .editing import (
+    InkEdit,
+    PdfEdit,
+    RectEdit,
+    SignatureEdit,
+    TextEdit,
+    extract_page_text,
+    get_page_sizes,
+    save_pdf_edits,
+)
 
 __all__ = [
     "PdfInfo",
@@ -22,6 +32,14 @@ __all__ = [
     "parse_page_spec",
     "rotate_pages",
     "split_pdf",
+    "InkEdit",
+    "PdfEdit",
+    "RectEdit",
+    "SignatureEdit",
+    "TextEdit",
+    "extract_page_text",
+    "get_page_sizes",
+    "save_pdf_edits",
 ]
 
-__version__ = "1.0.0"
+__version__ = "2.0.0"

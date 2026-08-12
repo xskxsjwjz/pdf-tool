@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdf-simple-tool"
-version = "1.0.0"
-description = "A small offline desktop app for merging, deleting, extracting, rotating, and splitting PDF pages."
+version = "2.0.0"
+description = "A desktop PDF organizer and visual editor with annotations, handwritten signatures, and translation."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
   { name = "xskxsjwjz" },
 ]
-keywords = ["pdf", "desktop", "tkinter", "merge", "split"]
+keywords = ["pdf", "desktop", "tkinter", "editor", "signature", "translation"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Environment :: Win32 (MS Windows)",
@@ -28,7 +28,10 @@ classifiers = [
 ]
 dependencies = [
   "pypdf>=6.0,<7",
-  "tkinterdnd2>=0.4.3,<0.7",
+  "tkinterdnd2>=0.4.3,<0.5",
+  "pypdfium2>=4.30,<6",
+  "Pillow>=10,<13",
+  "reportlab>=4.4,<5",
 ]
 
 [project.gui-scripts]

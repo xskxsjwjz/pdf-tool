@@ -2,7 +2,7 @@
 
 PDF Simple Tool includes or is distributed with the open-source components listed below. These notices apply to the packaged Windows executable and do not replace the project's own [MIT License](LICENSE).
 
-The release build excludes Pillow and ReportLab. ReportLab is used only by an optional visual QA script and is not included in the distributed application. PyInstaller is a build tool; its official bootloader exception permits generated executables to use the application's chosen license and does not require a PyInstaller acknowledgement in the application.
+The 2.0 release includes Pillow, ReportLab, pypdfium2, and PDFium for visual editing. Package metadata and the PDFium wheel's complete `BUILD_LICENSES` directory are collected into the executable at build time. PyInstaller is a build tool; its official bootloader exception permits generated executables to use the application's chosen license and does not require a PyInstaller acknowledgement in the application.
 
 ## CPython 3.13
 
@@ -170,4 +170,12 @@ Source: https://github.com/petasis/tkdnd
 ## Build and QA tools not included as runtime libraries
 
 - PyInstaller 6.x: GPL-2.0-or-later with the bootloader exception; https://pyinstaller.org/
+
+## Visual editor runtime libraries
+
+- pypdfium2 4.x/5.x: Apache-2.0 OR BSD-3-Clause; https://github.com/pypdfium2-team/pypdfium2
+- PDFium: BSD-style license; https://pdfium.googlesource.com/pdfium/
 - ReportLab 4.x: BSD 3-Clause; https://www.reportlab.com/
+- Pillow 10.x–12.x: MIT-CMU; https://python-pillow.github.io/
+
+The primary license texts are also shipped in the corresponding Python distribution metadata. The pypdfium2 binary distribution includes PDFium's component-specific notices under `BUILD_LICENSES`; those notices apply to the exact PDFium build bundled with the application.
