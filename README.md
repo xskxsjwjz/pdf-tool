@@ -1,4 +1,4 @@
-# PDF 简工具 2.0
+# PDF 简工具 2.1
 
 [![CI](https://github.com/xskxsjwjz/pdf-tool/actions/workflows/ci.yml/badge.svg)](https://github.com/xskxsjwjz/pdf-tool/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/xskxsjwjz/pdf-tool)](https://github.com/xskxsjwjz/pdf-tool/releases/latest)
@@ -7,10 +7,14 @@
 
 [English](README.en.md)
 
-一个面向 Windows 的 PDF 整理与可视编辑工具。2.0 在原有合并、删页、提取、旋转和拆分能力上，新增页面预览、文字批注、自由绘制、手写签名、荧光标记、视觉遮盖与翻译。
+一个面向 Windows 的 PDF 整理与可视编辑工具。2.1 在原有 PDF 整理与可视编辑能力上，新增 JPG、PNG 等经典图片格式转 PDF 功能。
 
-## 2.0 功能
+## 2.1 功能
 
+- 支持 JPG、JPEG、PNG、BMP、GIF、TIFF 和 WebP 图片转 PDF
+- 支持批量添加图片，列表顺序就是 PDF 页面的顺序
+- 支持文件选择、文件夹导入和拖放图片
+- 自动处理图片 EXIF 方向；透明图片会以白色背景输出
 - 可视预览并逐页编辑 PDF，支持 75%–200% 缩放
 - 点击页面添加单行或多行文字，支持中文
 - 画笔自由批注、颜色选择、撤销与重做
@@ -19,13 +23,15 @@
 - 提取当前页文字，通过 LibreTranslate 兼容服务翻译，并把译文放回页面
 - 编辑结果另存为新 PDF，写入后会重新读取校验
 - 保留 1.x 的合并、删除页面、提取页面、旋转和拆分功能
-- 支持添加文件、文件夹以及拖放 PDF
+- 支持添加文件、文件夹以及拖放 PDF 或图片
 
 > “遮盖”只是覆盖一个白色图层，不会安全删除底层文字或元数据，请勿把它当作涉密信息脱敏工具。
 
 ## 使用
 
 批量整理：添加或拖入 PDF，选择操作、页码与输出位置，然后点击“开始处理”。页码支持 `1,3-5` 等写法。
+
+图片转 PDF：在“操作”中选择“Images to PDF”，添加一张或多张图片，调整列表顺序后选择输出位置并开始处理。
 
 可视编辑：选中一个 PDF 后点击“可视编辑 / 手写签名”，也可以双击列表中的 PDF。在编辑窗口选择画笔、文字、荧光、遮盖或手写签名工具。签名放置后，拖动签名本体可移动，拖动四角蓝色控制点可等比例缩放；稍后可用“选择/调整”重新选中。完成后点击“另存为 PDF”。所有修改只有另存后才会写入文件，源文件不会被覆盖。
 
