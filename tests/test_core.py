@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from PIL import Image
 from pypdf import PdfReader, PdfWriter
 
 from pdf_tool.core import (
@@ -12,6 +13,7 @@ from pdf_tool.core import (
     delete_pages,
     extract_pages,
     inspect_pdf,
+    images_to_pdf,
     merge_pdfs,
     parse_page_spec,
     rotate_pages,
@@ -86,6 +88,24 @@ class CoreTests(unittest.TestCase):
         outputs = split_pdf(self.first, self.root / "split")
         self.assertEqual(len(outputs), 3)
         self.assertTrue(all(len(PdfReader(str(path)).pages) == 1 for path in outputs))
+
+    def test_images_to_pdf_preserves_order_and_handles_transparency(self) -> None:
+        first = self.root / "first.png"
+        second = self.root / "second.jpg"
+        Image.new("RGBA", (120, 80), (255, 0, 0, 128)).save(first)
+        Image.new("RGB", (240, 160), "blue").save(second, quality=90)
+        output = images_to_pdf([second, first], self.root / "images.pdf")
+        reader = PdfReader(str(output))
+        self.assertEqual(len(reader.pages), 2)
+        self.assertEqual((float(reader.pages[0].mediabox.width), float(reader.pages[0].mediabox.height)), (240.0, 160.0))
+        self.assertEqual((float(reader.pages[1].mediabox.width), float(reader.pages[1].mediabox.height)), (120.0, 80.0))
+
+    def test_images_to_pdf_rejects_invalid_inputs(self) -> None:
+        image = self.root / "image.png"
+        Image.new("RGB", (10, 10), "white").save(image)
+        with self.assertRaises(PdfToolError):
+            images_to_pdf([self.first], self.root / "bad.pdf")
+        self.assertEqual(images_to_pdf([image], image).suffix, ".pdf")
 
     def test_save_visual_edits(self) -> None:
         edits = [

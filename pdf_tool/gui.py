@@ -16,6 +16,8 @@ from .core import (
     delete_pages,
     extract_pages,
     inspect_pdf,
+    inspect_image,
+    images_to_pdf,
     merge_pdfs,
     rotate_pages,
     split_pdf,
@@ -33,6 +35,7 @@ except ImportError:
 
 
 OPERATIONS = {
+    "Images to PDF": "images_to_pdf",
     "合并 PDF": "merge",
     "删除页面": "delete",
     "提取页面": "extract",
@@ -41,6 +44,7 @@ OPERATIONS = {
 }
 
 HELP_TEXT = {
+    "images_to_pdf": "Add JPG, JPEG, PNG, BMP, GIF, TIFF, or WebP images. The list order becomes the PDF page order.",
     "merge": "列表顺序就是合并顺序，可用上移、下移调整。",
     "delete": "选中一个 PDF，输入要删除的页码，例如 1,3-5。",
     "extract": "选中一个 PDF，输入要保留到新文件的页码。",
@@ -93,12 +97,12 @@ class PdfToolApp:
         self._configure_drop()
 
     def _configure_window(self) -> None:
-        self.root.title("PDF 简工具 2.0")
+        self.root.title("PDF 简工具 2.1")
         self.root.geometry("940x700")
         self.root.minsize(820, 620)
         self.root.configure(bg=self.BG)
         try:
-            self.root.iconname("PDF 简工具 2.0")
+            self.root.iconname("PDF 简工具 2.1")
         except tk.TclError:
             pass
 
@@ -143,7 +147,7 @@ class PdfToolApp:
         outer.columnconfigure(0, weight=1)
         outer.rowconfigure(2, weight=1)
 
-        ttk.Label(outer, text="PDF 简工具 2.0", style="Title.TLabel").grid(row=0, column=0, sticky="w")
+        ttk.Label(outer, text="PDF 简工具 2.1", style="Title.TLabel").grid(row=0, column=0, sticky="w")
         drag_note = "支持拖入 PDF 或文件夹" if DND_AVAILABLE else "可从文件或文件夹添加 PDF"
         ttk.Label(
             outer,
@@ -344,24 +348,37 @@ class PdfToolApp:
         return "break"
 
     def add_files_dialog(self) -> None:
+        image_mode = OPERATIONS[self.operation_var.get()] == "images_to_pdf"
+        filetypes = (
+            (("Image files", "*.jpg *.jpeg *.png *.bmp *.gif *.tif *.tiff *.webp"), ("All files", "*.*"))
+            if image_mode
+            else (("PDF files", "*.pdf"), ("All files", "*.*"))
+        )
         paths = filedialog.askopenfilenames(
-            parent=self.root, title="选择 PDF", filetypes=(("PDF 文件", "*.pdf"), ("所有文件", "*.*"))
+            parent=self.root, title="Select images" if image_mode else "Select PDFs", filetypes=filetypes
         )
         if paths:
             self.add_paths(Path(path) for path in paths)
 
     def add_folder_dialog(self) -> None:
-        folder = filedialog.askdirectory(parent=self.root, title="选择包含 PDF 的文件夹")
+        image_mode = OPERATIONS[self.operation_var.get()] == "images_to_pdf"
+        folder = filedialog.askdirectory(parent=self.root, title="Select image folder" if image_mode else "Select PDF folder")
         if folder:
             self.add_paths([Path(folder)])
 
     def add_paths(self, paths) -> None:
+        image_mode = OPERATIONS[self.operation_var.get()] == "images_to_pdf"
+        image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff", ".webp"}
         candidates: list[Path] = []
         for path in paths:
             path = Path(path)
             if path.is_dir():
-                candidates.extend(sorted(path.glob("*.pdf"), key=lambda item: item.name.lower()))
-            elif path.suffix.lower() == ".pdf":
+                candidates.extend(sorted(
+                    (item for item in path.iterdir() if item.is_file() and (
+                        item.suffix.lower() in image_extensions if image_mode else item.suffix.lower() == ".pdf"
+                    )), key=lambda item: item.name.lower()
+                ))
+            elif path.suffix.lower() in image_extensions if image_mode else path.suffix.lower() == ".pdf":
                 candidates.append(path)
 
         known = {info.path.resolve() for info in self.files}
@@ -372,7 +389,7 @@ class PdfToolApp:
                 resolved = path.resolve()
                 if resolved in known:
                     continue
-                info = inspect_pdf(resolved)
+                info = inspect_image(resolved) if image_mode else inspect_pdf(resolved)
                 self.files.append(info)
                 known.add(resolved)
                 added += 1
@@ -465,6 +482,8 @@ class PdfToolApp:
         if not self.files:
             return None
         operation = OPERATIONS[self.operation_var.get()]
+        if operation == "images_to_pdf":
+            return self.files[0].path.parent / "images.pdf"
         if operation == "merge":
             parent = self.files[0].path.parent
             return parent / "合并结果.pdf"
@@ -514,6 +533,14 @@ class PdfToolApp:
             raise PdfToolError("请选择输出位置。")
         output = Path(output_text)
 
+        if operation == "images_to_pdf":
+            if any(info.path.suffix.lower() not in {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff", ".webp"} for info in self.files):
+                raise PdfToolError("Image to PDF requires image files only")
+            return operation, [info.path for info in self.files], output, "", 0
+
+        if any(info.path.suffix.lower() != ".pdf" for info in self.files):
+            raise PdfToolError("This operation requires PDF files; choose Images to PDF for images")
+
         if operation == "merge":
             if len(self.files) < 2:
                 raise PdfToolError("合并至少需要 2 个 PDF。")
@@ -544,7 +571,9 @@ class PdfToolApp:
     def _worker(self, request) -> None:
         operation, inputs, output, page_spec, angle = request
         try:
-            if operation == "merge":
+            if operation == "images_to_pdf":
+                results = [images_to_pdf(inputs, output)]
+            elif operation == "merge":
                 results = [merge_pdfs(inputs, output)]
             elif operation == "delete":
                 results = [delete_pages(inputs[0], page_spec, output)]

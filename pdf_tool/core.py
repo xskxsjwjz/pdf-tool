@@ -14,6 +14,10 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 from pypdf import PdfReader, PdfWriter
+from PIL import Image, ImageOps
+
+
+SUPPORTED_IMAGE_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tif", ".tiff", ".webp"})
 
 
 class PdfToolError(Exception):
@@ -25,6 +29,84 @@ class PdfInfo:
     path: Path
     page_count: int
     size_bytes: int
+
+
+def inspect_image(path: str | os.PathLike[str]) -> PdfInfo:
+    """Validate an image input and expose it in the same shape as PDF info."""
+
+    image_path = Path(path).expanduser().resolve()
+    if not image_path.is_file():
+        raise PdfToolError(f"Image does not exist: {image_path}")
+    if image_path.suffix.lower() not in SUPPORTED_IMAGE_EXTENSIONS:
+        raise PdfToolError(f"Unsupported image format: {image_path.suffix or image_path.name}")
+    try:
+        with Image.open(image_path) as image:
+            image.verify()
+    except Exception as exc:
+        raise PdfToolError(f"Unable to read image '{image_path.name}': {exc}") from exc
+    return PdfInfo(image_path, 1, image_path.stat().st_size)
+
+
+def images_to_pdf(
+    inputs: Sequence[str | os.PathLike[str]], output: str | os.PathLike[str]
+) -> Path:
+    """Convert images to a multi-page PDF, preserving the input order."""
+
+    if not inputs:
+        raise PdfToolError("At least one image is required")
+    input_paths = [Path(path).expanduser().resolve() for path in inputs]
+    for path in input_paths:
+        inspect_image(path)
+    output_path = Path(output).expanduser().resolve()
+    if output_path.suffix.lower() != ".pdf":
+        output_path = output_path.with_suffix(".pdf")
+    _ensure_output_not_input(output_path, input_paths)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", suffix=".pdf", prefix=".pdf_tool_", dir=output_path.parent, delete=False
+        ) as stream:
+            temp_path = Path(stream.name)
+        pages: list[Image.Image] = []
+        for path in input_paths:
+            with Image.open(path) as source:
+                image = ImageOps.exif_transpose(source)
+                if getattr(image, "is_animated", False):
+                    image.seek(0)
+                if image.mode not in {"RGB", "L"}:
+                    background = Image.new("RGB", image.size, "white")
+                    if "A" in image.getbands():
+                        background.paste(image, mask=image.getchannel("A"))
+                        image = background
+                    else:
+                        image = image.convert("RGB")
+                width, height = image.size
+                scale = min(1.0, 14400 / max(width, height))
+                if scale < 1.0:
+                    image = image.resize((max(1, int(width * scale)), max(1, int(height * scale))), Image.Resampling.LANCZOS)
+                pages.append(image.copy().convert("RGB"))
+        pages[0].save(
+            str(temp_path), "PDF", resolution=72.0, save_all=True, append_images=pages[1:]
+        )
+        for page in pages:
+            page.close()
+        checked = PdfReader(str(temp_path), strict=False)
+        if len(checked.pages) != len(input_paths):
+            raise PdfToolError("Output validation failed: page count does not match image count")
+        os.replace(temp_path, output_path)
+        return output_path
+    except PdfToolError:
+        raise
+    except Exception as exc:
+        raise PdfToolError(f"Unable to create PDF: {exc}") from exc
+    finally:
+        if temp_path is not None and temp_path.exists():
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass
 
 
 def _as_pdf_path(path: str | os.PathLike[str]) -> Path:

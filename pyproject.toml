@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdf-simple-tool"
-version = "2.0.0"
+version = "2.1.0"
 description = "A desktop PDF organizer and visual editor with annotations, handwritten signatures, and translation."
 readme = "README.md"
 requires-python = ">=3.10"

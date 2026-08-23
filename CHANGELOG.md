@@ -6,6 +6,13 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-23
+
+### Added
+
+- Convert JPG, JPEG, PNG, BMP, GIF, TIFF, and WebP images into an ordered multi-page PDF.
+- Preserve image orientation from EXIF metadata and flatten transparent images onto a white page.
+
 ## [2.0.0] - 2026-08-12
 
 ### Added

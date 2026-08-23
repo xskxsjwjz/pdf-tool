@@ -6,6 +6,8 @@ from .core import (
     delete_pages,
     extract_pages,
     inspect_pdf,
+    inspect_image,
+    images_to_pdf,
     merge_pdfs,
     parse_page_spec,
     rotate_pages,
@@ -28,6 +30,8 @@ __all__ = [
     "delete_pages",
     "extract_pages",
     "inspect_pdf",
+    "inspect_image",
+    "images_to_pdf",
     "merge_pdfs",
     "parse_page_spec",
     "rotate_pages",
@@ -42,4 +46,4 @@ __all__ = [
     "save_pdf_edits",
 ]
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"

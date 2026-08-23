@@ -1,8 +1,8 @@
-# PDF Simple Tool 2.0
+# PDF Simple Tool 2.1
 
 [简体中文](README.md)
 
-A Windows desktop app for organizing and visually editing PDFs. Version 2.0 adds page preview, text annotations, freehand ink, handwritten signatures, highlighting, visual whiteout, and optional translation to the original merge/delete/extract/rotate/split workflow.
+A Windows desktop app for organizing and visually editing PDFs. Version 2.1 adds image-to-PDF conversion for JPG, PNG, BMP, GIF, TIFF, and WebP alongside the existing PDF workflows.
 
 ## Features
 
