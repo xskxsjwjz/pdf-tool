@@ -1,5 +1,5 @@
 pypdf>=6.0,<7
-tkinterdnd2>=0.4.3,<0.5
+tkinterdnd2>=0.4.3,<0.7
 pypdfium2>=4.30,<6
 Pillow>=10,<13
 reportlab>=4.4,<5
